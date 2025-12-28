@@ -4,11 +4,6 @@ function generate_fw(sdt_path::String, fw_path::String, xsa_file_path::String, b
     mkpath(sdt_path)
     mkpath(fw_path)
 
-    cmd_prefix = ""
-    if Sys.iswindows()
-        cmd_prefix = `powershell -Command`
-    end
-
     #run(`sdtgen -xsa $xsa_file_path -dir $sdt_path -board_dts zynqmp-smk-k26-reva -zocl enable -trace enable -debug enable`)
     run(`lopper --enhanced -O $fw_path -f $sdt_path/system-top.dts -- xlnx_overlay_dt cortexa53-zynqmp full`)
     run(`dtc -I dts -O dtb -o $fw_path/pl.dtbo $fw_path/pl.dtsi`)
