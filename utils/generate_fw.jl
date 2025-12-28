@@ -1,14 +1,17 @@
 using ArgParse
 
 function generate_fw(sdt_path::String, fw_path::String, xsa_file_path::String, bin_file_path::String)
-    run(`mkdir -p $sdt_path`)
-    run(`mkdir -p $fw_path`)
+    mkpath(sdt_path)
+    mkpath(fw_path)
+    
+    cmd_prefix = ""
+    if Sys.iswindows()
+        cmd_prefix = `powershell -Command`
+    end
 
-    run(`sdtgen -xsa $xsa_file_path -dir $sdt_path -board_dts zynqmp-smk-k26-reva -trace enable -debug enable`)
-
-    run(`lopper --enhanced -O $sdt_path -f $sdt_path/system-top.dts -- xlnx_overlay_dt cortexa53-zynqmp full`)
-
-    run(`dtc -I dts -O dtb -o $fw_path/pl.dtbo $sdt_path/pl.dtsi`)
+    #run(`$cmd_prefix sdtgen -xsa $xsa_file_path -dir $sdt_path -board_dts zynqmp-smk-k26-reva -zocl enable -trace enable -debug enable`)
+    run(`$cmd_prefix lopper --enhanced -O $fw_path -f $sdt_path/system-top.dts -- xlnx_overlay_dt cortexa53-zynqmp full`)
+    run(`$cmd_prefix dtc -I dts -O dtb -o $fw_path/pl.dtbo $fw_path/pl.dtsi`)
 
     shell_file = """{
         "shell_type": "XRT_FLAT",
@@ -19,7 +22,7 @@ function generate_fw(sdt_path::String, fw_path::String, xsa_file_path::String, b
         write(f, shell_file)
     end
 
-    run(`cp $bin_file_path $fw_path`)
+    cp("$bin_file_path", "$fw_path/$(basename(bin_file_path))", force=true)
 end
 
 function main()
