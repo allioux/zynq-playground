@@ -127,16 +127,14 @@ int main(int argc, char *argv[])
     const uint32_t array_size = input_array.size();
 
     const std::string bram_device = "/dev/uio" + std::to_string(DEFAULT_BRAM_IDX);
-    std::cerr << "Opening BRAM device: " << bram_device << std::endl;
     int bram_fd = open(bram_device.c_str(), O_RDWR | O_SYNC);
+
     if (bram_fd < 0)
     {
         throw std::runtime_error(std::string("Failed to open BRAM device: ") + bram_device);
     }
 
     uint32_t bram_size = get_uio_map_size(DEFAULT_BRAM_IDX);
-    std::cerr << "BRAM size: " << bram_size << " bytes" << std::endl;
-    std::cerr << "Array size to copy: " << (array_size * sizeof(int32_t)) << " bytes" << std::endl;
 
     if (array_size * sizeof(int32_t) > bram_size)
     {
@@ -145,28 +143,25 @@ int main(int argc, char *argv[])
     }
 
     void *bram_mapped = mmap(nullptr, bram_size, PROT_READ | PROT_WRITE, MAP_SHARED, bram_fd, 0);
+
     if (bram_mapped == MAP_FAILED)
     {
         close(bram_fd);
         throw std::runtime_error("Failed to mmap BRAM device");
     }
-    std::cerr << "BRAM mapped at: " << bram_mapped << std::endl;
 
-    std::cerr << "Copying array to BRAM..." << std::endl;
     volatile int32_t *bram_ptr = static_cast<volatile int32_t *>(bram_mapped);
+
     for (uint32_t i = 0; i < array_size; ++i)
     {
         bram_ptr[i] = input_array[i];
     }
-    std::cerr << "Array copied successfully" << std::endl;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     __sync_synchronize();
 
     const std::string ctrl_device = "/dev/uio" + std::to_string(DEFAULT_CTRL_IDX);
-    std::cerr << "Opening control device: " << ctrl_device << std::endl;
     int ctrl_fd = open(ctrl_device.c_str(), O_RDWR | O_SYNC);
+
     if (ctrl_fd < 0)
     {
         munmap(bram_mapped, bram_size);
@@ -175,9 +170,8 @@ int main(int argc, char *argv[])
     }
 
     uint32_t ctrl_size = get_uio_map_size(DEFAULT_CTRL_IDX);
-    std::cerr << "Control register size: " << ctrl_size << " bytes" << std::endl;
-
     void *ctrl_mapped = mmap(nullptr, ctrl_size, PROT_READ | PROT_WRITE, MAP_SHARED, ctrl_fd, 0);
+
     if (ctrl_mapped == MAP_FAILED)
     {
         close(bram_fd);
@@ -185,16 +179,13 @@ int main(int argc, char *argv[])
         munmap(bram_mapped, bram_size);
         throw std::runtime_error("Failed to mmap control device");
     }
-    std::cerr << "Control registers mapped at: " << ctrl_mapped << std::endl;
 
     volatile int32_t *ctrl_mem = static_cast<volatile int32_t *>(ctrl_mapped);
-    std::cerr << "Setting SIZE register to: " << array_size << std::endl;
     ctrl_mem[REG_SIZE_OFFSET / sizeof(int32_t)] = array_size;
 
-    // Run computation 1000 times
     std::vector<ComputationResult> results;
-    std::cerr << "Starting 1000 computation iterations..." << std::endl;
 
+    // Run computation 1000 times
     for (int iter = 0; iter < 1000; ++iter)
     {
         try
@@ -208,7 +199,6 @@ int main(int argc, char *argv[])
             throw;
         }
     }
-    std::cerr << "All iterations completed successfully" << std::endl;
 
     int64_t total = 0;
     int64_t min_duration = results[0].duration;
@@ -224,9 +214,11 @@ int main(int argc, char *argv[])
     }
 
     double average_ns = static_cast<double>(total) / results.size();
-    
+
     std::cout << "=== Day 1 ===\n";
-    std::cout << "Part 1: " << results[0].part1 << " | Part 2: " << results[0].part2 << " | Min: " << min_duration / 1000.0 << " μs | Max: " << max_duration / 1000.0 << " μs | Avg: " << average_ns / 1000.0 << " μs\n";
+    std::cout << "Part 1: " << results[0].part1 << " | Part 2: " << results[0].part2
+              << " | Min: " << min_duration / 1000.0 << " μs | Max: " << max_duration / 1000.0
+              << " μs | Avg: " << average_ns / 1000.0 << " μs\n";
 
     // Cleanup
     munmap(bram_mapped, bram_size);
