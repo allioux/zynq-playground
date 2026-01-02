@@ -4,9 +4,9 @@ function generate_fw(sdt_path::String, fw_path::String, xsa_file_path::String, b
     mkpath(sdt_path)
     mkpath(fw_path)
 
-    #run(`sdtgen -xsa $xsa_file_path -dir $sdt_path -board_dts zynqmp-smk-k26-reva -zocl enable -trace enable -debug enable`)
-    run(`lopper --enhanced -O $fw_path -f $sdt_path/system-top.dts -- xlnx_overlay_dt cortexa53-zynqmp full`)
-    run(`dtc -I dts -O dtb -o $fw_path/pl.dtbo $fw_path/pl.dtsi`)
+    run(`sdtgen -xsa $xsa_file_path -dir $sdt_path -board_dts zynqmp-smk-k26-reva -trace enable -debug enable`)
+    run(`lopper --enhanced -O $sdt_path -f $sdt_path/system-top.dts -- xlnx_overlay_dt cortexa53-zynqmp full`)
+    run(`dtc -I dts -O dtb -o $fw_path/pl.dtbo $sdt_path/pl.dtsi`)
 
     shell_file = """{
         "shell_type": "XRT_FLAT",
@@ -26,17 +26,17 @@ function main()
     )
     @add_arg_table parser begin
         "--xsa"
-            help = "Path to the XSA file."
-            required = true
+        help = "Path to the XSA file."
+        required = true
         "--bin"
-            help = "Directory for BIN file."
-            required = true
+        help = "Directory for BIN file."
+        required = true
         "--sdt"
-            help = "Directory for SDT files."
-            required = true
+        help = "Directory for SDT files."
+        required = true
         "--fw"
-            help = "Output directory for firmware."
-            required = true
+        help = "Output directory for firmware."
+        required = true
     end
 
     args = parse_args(parser)
